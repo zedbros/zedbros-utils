@@ -1,0 +1,4 @@
+#!/bin/sh
+kitten @ set-background-image \
+	--match "id:$KITTY_WINDOW_ID" \
+	"Downloads/midnight-white-bird.jpg"

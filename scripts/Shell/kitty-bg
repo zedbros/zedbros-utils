@@ -1,0 +1,5 @@
+#!/bin/sh
+kitten @ set-background-image \
+	--match "id:$KITTY_WINDOW_ID" \
+	"Downloads/2B_simple.jpg"
+	
