@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+
+read -p "Do you wish to copy this local config file to the repo ? (Y/n). " res
+
+if [[ -z $res || "$res" =~ ^[yY]$ ]]; then
+	cp ~/.config/kitty/kitty.conf ~/Main/Other/Personal/zedbros-utils/configs/Kitty/kitty.conf
+fi
+
+echo wazaaa
+

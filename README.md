@@ -75,3 +75,7 @@ I use ZSH.
 
 #### updt (deactivated)
     Is a project that will update the chosen scripts and configs on my machine. Like a git pull/push but between my local repo and (my local config files, .local/bin/ scripts and other various scripts (ftls for ex.) ).
+#### updt-kitty
+    Just copies the local config file to this local repo for quick uploads.
+#### zbut
+    Simply type ". zbut" anywhere and it directs me to this locally stored repo. (allows me to quickly check, modify or push changes I have made, such as `updt-kitty \ . zbut \ geet`.)

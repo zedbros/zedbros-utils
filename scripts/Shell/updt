@@ -2,3 +2,6 @@
 
 # This is going to be a future project, where I can update the selected scripts and configs on my machine.
 
+# First checks the diffs between all the files
+# TODO Will add some form of autocomplete first before because I don't want to manualy type the directories.
+

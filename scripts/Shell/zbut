@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# to run from anywhere type ". zbut"
+
+cd /home/zb/Main/Other/Personal/zedbros-utils/
