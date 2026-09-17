@@ -10,6 +10,9 @@ I use ZSH.
     - no annoying audio when you hit a tab wall for example
     - remote control to change wallpaper when switching between neovim and the terminal (see both scripts in Scripts/Shell/kitty-bg.sh and Scripts/Shell/nvim-bg.sh)
     - scrollback pager means I can open the terminal history in neovim, if I want to look for a specific term for example
+    - tilling windows (current or root directory) and basic windows cycle
+    - kitty tabs
+    - background switcher
 ![2B](img/simple_2B.png)
 ## Text editor
 ### Neovim
@@ -67,3 +70,8 @@ I use ZSH.
 #### kitty-bg
     Is called when exiting neovim. This changes the background back to the default background you can see above.\
     note: changing the background in kitty.conf, will not change the default background when exiting neovim
+#### geet
+    Much faster git commands in one: git add . | git status | yes/or/no => git commit --allow-empty --allow--empty-messages -m "commit_message" | git push
+
+#### updt (deactivated)
+    Is a project that will update the chosen scripts and configs on my machine. Like a git pull/push but between my local repo and (my local config files, .local/bin/ scripts and other various scripts (ftls for ex.) ).
