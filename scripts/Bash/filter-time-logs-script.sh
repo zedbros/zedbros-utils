@@ -1,10 +1,15 @@
 #!/bin/bash
-set -eou pipefail
+set -euo pipefail
 
-read -p "Do you wish to retrieve all the permissions in all the JSON logfiles in a folder ? (Y/n): " all_bool
+read -p "Do you wish to retrieve ALL the permissions in all the JSON logfiles in a folder ? (Y/n): " all_bool
+read -p "Enter ouput text file name (default: output-time-log.txt): " output
 
-output="output-time-logs.txt"
-> $output
+if [ -z $output ]; then
+	output="output-time-logs.txt" > $output
+else
+	> $output
+fi
+
 
 filter () {
 	local filename=$1
@@ -29,7 +34,6 @@ if [[ -z "$all_bool" || "$all_bool" == "y" || "$all_bool" == "Y" ]]; then
 	fi
 
 	for filename in $filedir; do filter $filename $cutoff; done
-
 else
 	filename="${1:-}"
 	cutoff="${2:-}"
@@ -45,4 +49,6 @@ fi
 
 sort -u $output -o $output
 
-echo The file was written to $output
+pd=$(pwd)
+echo The file was written to $pd/$output
+

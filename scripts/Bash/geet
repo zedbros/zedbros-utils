@@ -1,0 +1,17 @@
+#!/bin/bash
+# This script speeds up my github commands add --all, status, commit -m "commit message" and push; with one command.
+# Allows empty messages and empty commits.
+
+git add .
+git status
+
+read -p "Do you wish to push? (Y/n): " answer
+
+if [[ -z "$answer" || "$answer" =~ ^[Yy]$ ]]; then
+	read -p "commit -m " mes
+    git commit --allow-empty --allow-empty-message -m "$mes"
+    git push
+else
+    echo "Push cancelled."
+fi
+
