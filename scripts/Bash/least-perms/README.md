@@ -8,10 +8,10 @@ If the chosen amount of managed policies don't cover all the permissions, inline
 # Pre-requisites
 You need:
 1. A folder of collected AWS Cloudtrail logs
-Either
-    Automatic:
+2. Either
+    - Automatic:
         Run the `aquire-this-fine-functionnality.sh`
-    Manual:
+    - Manual:
         1. A folder of AWS Managed Policies (recommended: [aws-managed-policy-tracker](https://github.com/kisst/aws-managed-policy-tracker))
         2. A copy of this folder of scripts
 
@@ -28,5 +28,10 @@ Either
     or
     - Do everything manually
 3. (manual mode)
-    #### Filter time logs
+    #### s1 Extract log permissions
     This will go through each log file and retrieve each permission that was used.
+    #### s2 Match managed policies to log permissions
+    Retrieves a list of all the compatible managed policies.
+    #### s3 Venn
+    #### s4 cleanup
+    Puts all the locally created files into a versioned folder for multiple use.

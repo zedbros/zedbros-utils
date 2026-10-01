@@ -14,12 +14,12 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 		read -p "Enter log permissions file directory: " -e logPermissions
 		read -p "Enter fitted managed policies text file location: " -e listManagedPolicies
 		read -p "Enter managed policies location (normal or shortend): " -e m_p_dir
-		# TODO choose managed or shortend version instead. => just faster ?
 	fi
 
 	nbr_of_m_p=$(ls $m_p_dir | wc -l)
 	nbr_of_matched_m_p=$(cat $listManagedPolicies | wc -l)
 
+	echo -e "Here are the top 25 permissions (if they exist):\n$(cat $listManagedPolicies | head -n25)"
 	top_x=${2:-$(read -p "Enter the top x <= $nbr_of_matched_m_p matched managed policies you want to cover: " top_x && echo $top_x)}
 	while [ $top_x -gt $nbr_of_matched_m_p ]; do
 		echo -e "\e[0;36m------\e[0m There are $nbr_of_matched_m_p matched managed policies in your folder. Please enter a number less or equal to this amount. \e[0;36m--\e[0m"

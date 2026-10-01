@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-# --- PARAMETERS ---: Takes as parameters: nothing => manual mode (interactive) | (run_automatic: y, filedir: logs/*, cutoff: 2026-08-27T12:40:20Z, optional_s3_step: [yn], m_p_dir: str)
+# --- PARAMETERS ---: Takes as parameters: nothing => manual mode (interactive) | (run_automatic: y, filedir: logs/*, cutoff: 2026-08-27T12:40:20Z, m_p_dir: str)
 # --- DESCRIPTION ---: Retrieves all the permissions used in a folder of AWS logs.
 
 runyesno=${1:-}
@@ -20,14 +20,14 @@ filter () {
 	jq -r --arg cutoff "$cutoff" '
 		.Records[]
 		| select(.eventTime >= $cutoff)
-		| "\(.eventSource|split(".")[0]):\(.eventName)"
+		| "\(.eventSource|split(".")[0]):\(.eventName)|\(.resources.[0].ARN)"
 	' "$local_filename" | sort -u >> "$output"
 }
 
 
 if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	echo -e "\e[0;4;33m------ s1 Filtering started.. --\e[0m"
-	output="filtered-time-logs.txt" > $output
+	output="log-permissions.txt" > $output
 
 	filedir="${2:-}"
 	cutoff="${3:-}"
@@ -44,11 +44,10 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	echo -e "The file was written to \e[36m$output --\e[0m"
 	echo -e "\e[1;4;32m------\e[1;4m s1 Filtering \e[1;4;92mdone\e[1;4;32m. \e[1;4;32m------\e[0m\n"
 
-	thisScriptDir=$(dirname "$0")
 	if [ "$runyesno" == "y" ]; then
-		optional_s3_step="${4:-}"
-		m_p_dir="${5:-}"
-		$thisScriptDir/s2-specifics-pruner.sh $output $optional_s3_step $m_p_dir
+		thisScriptDir=$(dirname "$0")
+		m_p_dir="${4:-}"
+		sh "$thisScriptDir/s2-match-logPerms-managedPoliciesPerms.sh" "y" $m_p_dir
 	else
 		echo -e "\e[1;34mwazaaa\e[0m"
 	fi

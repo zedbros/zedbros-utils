@@ -5,8 +5,9 @@ set -euo pipefail
 #					   ex: lambda:AddPermission20150331v2 -> lambda:AddPermission
 
 pruneEm () {
-	sed -i -E 's/^(.*:.*)[0-9]{8}.*$/\1/' $1
-	echo -e "\e[1;4;32m------\e[1;4m S2 Pruning \e[1;4;92mdone\e[1;4;32m. [1;4;32m------\e[0m\n"
+	sed -i -E 's/^(.*:.*)[0-9]{8}.*(\|.*$)/\1\2/' $1
+	sort -u $1 -o $1
+	echo -e "\e[1;4;32m------\e[1;4m S2 Pruning \e[1;4;92mdone\e[1;4;32m. \e[1;4;32m------\e[0m\n"
 }
 
 destination=${1:-}

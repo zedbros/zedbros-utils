@@ -27,14 +27,8 @@ vers () {
 	echo $output_dir
 }
 
-if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
-	echo -e "\e[4;33m------ S6 Cleanup started.. --\e[0m"
-	
-	out_folder=$(vers "results")
-	mv filtered-time-logs.txt list-managed-policies.txt remaining-logged-permissions.txt top_*.txt shortend_managed_policies_folder $out_folder 2>/dev/null || true
-	echo -e "All files were moved to \e[4;36m$out_folder/\e[0m. \e[36m--\e[0m"
-	
-	nbrLogPerms=$(cat $out_folder/filtered-time-logs.txt | wc -l)
+kawalski () {
+	nbrLogPerms=$(cat $out_folder/log-permissions.txt | wc -l)
 	topNbr=$(cat $out_folder/top_*.txt | wc -l)
 	nbrRemain=$(cat $out_folder/remaining-logged-permissions.txt | wc -l)
 
@@ -45,10 +39,21 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	=> $((100*($nbrLogPerms-$nbrRemain)/$nbrLogPerms))%" > $out_folder/stats.txt
 
 	echo -e "\e[4;36mstats.txt\e[0m was created and written into \e[36m$out_folder/\e[36m. --\e[0m"
-	echo -e "\e[1;4;32m------\e[1;4m S6 Cleanup \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
 
 	read -s -n 1 -p $'Read stats ? [y]\n' readyesno
 	if [ "$readyesno" == "y" ]; then cat $out_folder/stats.txt; fi
+}
+
+if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
+	echo -e "\e[4;33m------ s4 Cleanup started.. --\e[0m"
+
+	out_folder=$(vers "results")
+	mv log-permissions.txt list-managed-policies.txt remaining-logged-permissions.txt shortend_managed_policies_folder *List.txt $out_folder 2>/dev/null || true
+	echo -e "All files were moved to \e[4;36m$out_folder/\e[0m. \e[36m--\e[0m"
+
+	# kawalski
+
+	echo -e "\e[1;4;32m------\e[1;4m s4 Cleanup \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
 fi
 
 if [ -z $yesno ]; then echo -e "\e[1;4;35\tmwazaaa\e[0m"; fi
