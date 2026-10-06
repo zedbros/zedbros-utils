@@ -1,0 +1,4 @@
+#!/bin/bash
+# Creates a bash script skeleton (including execution permissions) at working directory.
+read -p "bash script name: " filename
+cp ~/Main/Other/Personal/zedbros-utils/scripts/Bash/bash-template.sh ./$filename.sh
