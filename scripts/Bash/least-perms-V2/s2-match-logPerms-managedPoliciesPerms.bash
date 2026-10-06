@@ -18,6 +18,9 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	rm -rf $output_dir/*
 	TOTAL_NUMBER_OF_AWS_ACTIONS=$(counter=0 && for file in actions/*; do counter=$(($counter+$(cat $file | wc -l))); done && echo $counter)
 
+	# TODO evidently and iotevents appear a couple time and slow down the scoring process.. if we add theses sources to this temp file and grep the source, it should be faster.
+	# temp_actions_blacklist="temp_actions_blacklist.txt" > $temp_actions_blacklist
+
 	get_shortend () {
 		echo $(echo $1 | awk -F/ '{print $NF}' | cut -d'.' -f1)
 	}
@@ -156,7 +159,21 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 		fi
 		sort -u $localPassList -o $localPassList
 		nbr_of_covered_permissions=$(cat $localPassList | wc -l)
-		echo -e "$filename\n\tcoverage: [$nbr_of_covered_permissions/$nbr_of_log_permissions]\toverflow_level: [$nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS]" >> "$list_m_p"
+		
+		local coverageString="$nbr_of_covered_permissions/$nbr_of_log_permissions"
+		local coverageFloat=$(awk -v x1="$nbr_of_covered_permissions" -v x2="$nbr_of_log_permissions" 'BEGIN { printf "%.5f", x1 / x2 * 100 }')
+		local overflowLevelString="$nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS"
+		local overflowLevelFloat=$(awk -v y1="$nbr_of_allowed" -v y2="$TOTAL_NUMBER_OF_AWS_ACTIONS" 'BEGIN { printf "%.5f", y1 / y2 * 100}')
+		local SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 * z2}')
+		
+		if [[ "$SCORE" =~ ^0\.0*$ ]]; then
+			score_color="\e[31m"
+		else
+			score_color="\e[32m"
+		fi
+
+		echo -e "$filename\n\tcoverage       : [$coverageString] => $coverageFloat %\n\toverflow level : [$overflowLevelString] => $overflowLevelFloat %\n\t\tSCORE => $score_color$SCORE\e[0m" >> "$list_m_p"
+		
 		# cat $localPassList >> $passList
 		rm $localPassList
 	}
