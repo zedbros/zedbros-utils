@@ -12,19 +12,23 @@ yesno=${1:-$(read -p "Do you want to cleanup (Y/n): " yesno && echo $yesno)}
 # 2) Creates a folder indexed with and integer, based on the version.
 vers () {
 	local out_folder=$1
-	local new_version=0
 
 	mkdir $out_folder 2> /dev/null || true
-	local is_ver=$(ls -1 "$out_folder/version.txt" 2> /dev/null)
+	local is_ver=$(ls -1 "$out_folder/version.txt" 2>/dev/null)
 	if [ ! -z $is_ver ]; then
 		current_version=$(cat "$out_folder/version.txt")
 		new_version=$(($current_version + 1))
+
+		mv "$out_folder/$current_version-latest" "$out_folder/$current_version"
+	else
+		current_version=0
+		new_version=0
 	fi
 
+	mkdir "$out_folder/$new_version-latest"
 	echo $new_version > "$out_folder/version.txt"
-	local output_dir="$out_folder/$new_version"
-	mkdir $output_dir
-	echo $output_dir
+
+	echo "$out_folder/$new_version-latest"
 }
 
 kawalski () {
@@ -48,7 +52,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	echo -e "\e[4;33m------ s4 Cleanup started.. --\e[0m"
 
 	out_folder=$(vers "results")
-	mv log-permissions.txt list-managed-policies.txt remaining-logged-permissions.txt shortend_managed_policies_folder *List.txt $out_folder 2>/dev/null || true
+	mv log-*.txt *list-managed-policies.txt shortend_managed_policies_folder *ist.txt *errors.txt $out_folder 2>/dev/null || true
 	echo -e "All files were moved to \e[4;36m$out_folder/\e[0m. \e[36m--\e[0m"
 
 	# kawalski

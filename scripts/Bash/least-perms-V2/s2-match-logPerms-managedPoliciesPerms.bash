@@ -11,6 +11,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	logFile="log-permissions.txt"
 	nbr_of_log_permissions=$(cat $logFile | wc -l)
 	list_m_p="list-managed-policies.txt" > $list_m_p
+	concise_list_m_p="concise-list-managed-policies.txt" > $concise_list_m_p
 	blackList="blackList.txt" > $blackList
 	passList="passList.txt" > $passList
 	output_dir="shortend_managed_policies_folder"
@@ -20,6 +21,10 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 
 	# TODO evidently and iotevents appear a couple time and slow down the scoring process.. if we add theses sources to this temp file and grep the source, it should be faster.
 	# temp_actions_blacklist="temp_actions_blacklist.txt" > $temp_actions_blacklist
+
+	cat_action_errors="cat-action-errors.txt" > $cat_action_errors
+	grep_action_errors="grep-action-errors.txt" > $grep_action_errors
+
 
 	get_shortend () {
 		echo $(echo $1 | awk -F/ '{print $NF}' | cut -d'.' -f1)
@@ -144,15 +149,13 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 					fi
 				done < "$logFile"
 				# --- Handles the overflow ---
-				# TODO the **shortPerm** split | and split again : -f1 => go to that designated file in actions.. glob the entire file so that agent-registry:Get* matched to 4 in the actions/registry for example. && if the -f1 is * then number=counter given in get-...
-				shortPermSource="$(echo $shortPerm | cut -d'|' -f1 | cut -d':' -f1)"
-				if [ "$shortPermSource" == "*" ];then
+				shortPermSource="$(echo $shortPerm | cut -d'|' -f1 | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
+				if [ "$shortPermSource" == "*" ]; then
 					echo star reached TODO handles this if allow or not allow Action NotAction etc
 					nbr_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
 				else
 					shortPermAction="$(echo $shortPerm | cut -d'|' -f1 | cut -d':' -f2)"
-					# printf "\nsrc=>$shortPermSource, action=>$shortPermAction, nbr_of_appearences:: "
-					nbr_of_appearences=$(cat "actions/$shortPermSource.txt" | grep -E ^$shortPermAction | wc -l) && true
+					nbr_of_appearences=$(cat "actions/$shortPermSource.txt" 2>>"$cat_action_errors" | grep -E ^$shortPermAction 2>>"$grep_action_errors" | wc -l) && true
 					nbr_of_allowed=$(($nbr_of_allowed+$nbr_of_appearences))
 				fi
 			done < "$outFile"
@@ -160,19 +163,25 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 		sort -u $localPassList -o $localPassList
 		nbr_of_covered_permissions=$(cat $localPassList | wc -l)
 		
-		local coverageString="$nbr_of_covered_permissions/$nbr_of_log_permissions"
-		local coverageFloat=$(awk -v x1="$nbr_of_covered_permissions" -v x2="$nbr_of_log_permissions" 'BEGIN { printf "%.5f", x1 / x2 * 100 }')
-		local overflowLevelString="$nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS"
-		local overflowLevelFloat=$(awk -v y1="$nbr_of_allowed" -v y2="$TOTAL_NUMBER_OF_AWS_ACTIONS" 'BEGIN { printf "%.5f", y1 / y2 * 100}')
-		local SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 * z2}')
-		
+		coverageString="$nbr_of_covered_permissions/$nbr_of_log_permissions"
+		coverageFloat=$(awk -v x1="$nbr_of_covered_permissions" -v x2="$nbr_of_log_permissions" 'BEGIN { printf "%.5f", x1 / x2 * 100 }')
+		overflowLevelString="$nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS"
+		overflowLevelFloat=$(awk -v y1="$nbr_of_allowed" -v y2="$TOTAL_NUMBER_OF_AWS_ACTIONS" 'BEGIN { printf "%.5f", y1 / y2 * 100}')
+		if [[ "$nbr_of_allowed" =~ "$TOTAL_NUMBER_OF_AWS_ACTIONS" ]]; then
+			SCORE=0.00000
+		else
+			SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 * z2}')
+		fi	
 		if [[ "$SCORE" =~ ^0\.0*$ ]]; then
 			score_color="\e[31m"
 		else
 			score_color="\e[32m"
 		fi
 
+		# Human readable list (for show)
 		echo -e "$filename\n\tcoverage       : [$coverageString] => $coverageFloat %\n\toverflow level : [$overflowLevelString] => $overflowLevelFloat %\n\t\tSCORE => $score_color$SCORE\e[0m" >> "$list_m_p"
+		# Machine readable list (for analysis)
+		echo "$SCORE $filename" >> "$concise_list_m_p"
 		
 		# cat $localPassList >> $passList
 		rm $localPassList
@@ -180,28 +189,31 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 
 	m_p_dir=${2:-$(read -p "Enter the managed policies folder directory: " -e m_p_dir && echo $m_p_dir)}
 
-	# TODO here is the percentage error.. takes into account non .json files
 	i=0
 	counter=0
-	nbr_of_managed_policies=$(ls $m_p_dir | wc -l)
+	nbr_of_managed_policies=$(ls -1 $m_p_dir | grep -E ".*.json" | wc -l)
 	if [ $nbr_of_managed_policies -lt 100 ]; then
 		ratio=1
+		add_counter=$((100/$nbr_of_managed_policies))
 	else
 		ratio=$(($nbr_of_managed_policies/100))
+		add_counter=1
 	fi
 	for m_p_file in $(ls $m_p_dir); do
 		if [ ! -z $(echo $m_p_file | grep -E .json$) ]; then
 			analyse "$m_p_dir/$m_p_file"
-			# claude_section "$m_p_dir/$m_p_file"
 		fi
 		if [ $(($i % ratio)) -eq 0 ]; then
 			printf "\r[$counter]" && printf "%s" "%"
-			counter=$(($counter + 1))
+			counter=$(($counter + $add_counter))
 		fi
 		i=$(($i+1))
 	done
+
 	sort -u $blackList -o $blackList
-	sort -u $list_m_p -o $list_m_p
+	sort -u $cat_action_errors -o $cat_action_errors
+	sort -u $grep_action_errors -o $grep_action_errors
+	sort -un $concise_list_m_p -o $concise_list_m_p
 
 	echo -e "\nThere were $(cat $blackList | wc -l) managed policies removed. They were written to \e[0;36m$blackList --\e[0m"
 	echo -e "There are $(cat $list_m_p | wc -l) managed policies that are compatible. The list was written to \e[0;36m$list_m_p --\e[0m"
@@ -213,6 +225,6 @@ if [ -z ${1:-} ]; then
 	echo -e "\e[1;32mwazaaa"
 else
 	thisScriptDir=$(dirname "$0")
-	# "$thisScriptDir/s3-venn.bash" "y" "$output_dir"
+	"$thisScriptDir/s3-venn.bash" "y" "$output_dir"
 fi
 

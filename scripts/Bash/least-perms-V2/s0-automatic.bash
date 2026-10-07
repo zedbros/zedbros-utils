@@ -7,7 +7,6 @@ printf "\n"
 
 if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	if [ "${1:-}" == "y" ]; then
-		echo entered auto
 		logs_folder=${2:-}
 		cutoff=${3:-}
 		m_p_dir=${4:-}
@@ -18,7 +17,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	fi
 	thisScriptDir=$(dirname "$0")
 	$thisScriptDir/s1-extract-log-permissions.bash "y" $logs_folder $cutoff $m_p_dir
-	echo -e "\n\e[1;4;32m------\e[1;4;92m ALL DONE. \e[1;4;32m------\e[0m"
+	printf "\n\e[1;4;32m------\e[1;4;92m ALL DONE. \e[1;4;32m------\e[0m"
 fi
 
-echo -e "\e[1;4;35m\twazaaa\e[0m"
+printf "\n\t\e[1;4;35mwazaaa\e[0m\n"
