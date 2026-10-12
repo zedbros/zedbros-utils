@@ -11,7 +11,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	logFile="log-permissions.txt"
 	nbr_of_log_permissions=$(cat $logFile | wc -l)
 	list_m_p="list-managed-policies.txt" > $list_m_p
-	concise_list_m_p="concise-list-managed-policies.txt" > $concise_list_m_p
+	list_scores_m_p="list-scores-managed-policies.txt" > $list_scores_m_p
 	blackList="blackList.txt" > $blackList
 	passList="passList.txt" > $passList
 	output_dir="shortend_managed_policies_folder"
@@ -22,8 +22,8 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	# TODO evidently and iotevents appear a couple time and slow down the scoring process.. if we add theses sources to this temp file and grep the source, it should be faster.
 	# temp_actions_blacklist="temp_actions_blacklist.txt" > $temp_actions_blacklist
 
-	cat_action_errors="cat-action-errors.txt" > $cat_action_errors
-	grep_action_errors="grep-action-errors.txt" > $grep_action_errors
+	errors_cat_action="errors-cat-action.txt" > $errors_cat_action
+	errors_grep_action="errors-grep-action.txt" > $errors_grep_action
 
 
 	get_shortend () {
@@ -127,6 +127,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 		# If we reached this far, this means that either nothing in the current managed policy we are analysing contains an explict deny on any of our permissions. This means that we can now scan for the allowed policies and how many are covered. (this was s4's previous job, but is more efficient to do it here as the matching is applied in the same loop.)
 		#
 		# So here under is the allow actions and there might have potentially already been some permissions validated beforehand.
+		#
 		# TODO use the shortend files to get the which permissiosn it coveres exactly. Used for the Venn diagram later on.
 
 		jq -r '
@@ -155,7 +156,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 					nbr_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
 				else
 					shortPermAction="$(echo $shortPerm | cut -d'|' -f1 | cut -d':' -f2)"
-					nbr_of_appearences=$(cat "actions/$shortPermSource.txt" 2>>"$cat_action_errors" | grep -E ^$shortPermAction 2>>"$grep_action_errors" | wc -l) && true
+					nbr_of_appearences=$(cat "actions/$shortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>>"$errors_grep_action" | wc -l) && true
 					nbr_of_allowed=$(($nbr_of_allowed+$nbr_of_appearences))
 				fi
 			done < "$outFile"
@@ -168,7 +169,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 		overflowLevelString="$nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS"
 		overflowLevelFloat=$(awk -v y1="$nbr_of_allowed" -v y2="$TOTAL_NUMBER_OF_AWS_ACTIONS" 'BEGIN { printf "%.5f", y1 / y2 * 100}')
 		if [[ "$nbr_of_allowed" =~ "$TOTAL_NUMBER_OF_AWS_ACTIONS" ]]; then
-			SCORE=0.00000
+			SCORE="0.00000"
 		else
 			SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 * z2}')
 		fi	
@@ -180,8 +181,9 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 
 		# Human readable list (for show)
 		echo -e "$filename\n\tcoverage       : [$coverageString] => $coverageFloat %\n\toverflow level : [$overflowLevelString] => $overflowLevelFloat %\n\t\tSCORE => $score_color$SCORE\e[0m" >> "$list_m_p"
+
 		# Machine readable list (for analysis)
-		echo "$SCORE $filename" >> "$concise_list_m_p"
+		echo "$SCORE $filename" >> "$list_scores_m_p"
 		
 		# cat $localPassList >> $passList
 		rm $localPassList
@@ -211,12 +213,12 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	done
 
 	sort -u $blackList -o $blackList
-	sort -u $cat_action_errors -o $cat_action_errors
-	sort -u $grep_action_errors -o $grep_action_errors
-	sort -un $concise_list_m_p -o $concise_list_m_p
+	sort -u $errors_cat_action -o $errors_cat_action
+	sort -u $errors_grep_action -o $errors_grep_action
+	sort -n $list_scores_m_p -o $list_scores_m_p
 
 	echo -e "\nThere were $(cat $blackList | wc -l) managed policies removed. They were written to \e[0;36m$blackList --\e[0m"
-	echo -e "There are $(cat $list_m_p | wc -l) managed policies that are compatible. The list was written to \e[0;36m$list_m_p --\e[0m"
+	echo -e "There are $(($(cat $list_m_p | wc -l)/4)) managed policies that are compatible. The list was written to \e[0;36m$list_m_p --\e[0m"
 	echo -e "\nShortend files written to $output_dir/ \e[0;36m--\e[0m"
 	echo -e "\e[1;4;32m------\e[1;4m s2 Matching \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
 fi

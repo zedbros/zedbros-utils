@@ -52,12 +52,15 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	echo -e "\e[4;33m------ s4 Cleanup started.. --\e[0m"
 
 	out_folder=$(vers "results")
-	mv log-*.txt *list-managed-policies.txt shortend_managed_policies_folder *ist.txt *errors.txt $out_folder 2>/dev/null || true
+	mv log-*.txt list*.txt *ist.txt shortend_managed_policies_folder errors*.txt $out_folder 2>/dev/null || true
 	echo -e "All files were moved to \e[4;36m$out_folder/\e[0m. \e[36m--\e[0m"
 
 	# kawalski
 
-	echo -e "\e[1;4;32m------\e[1;4m s4 Cleanup \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
+	if [[ "$(read -n 1 -p "Do you want to kill the program ? [yN]: " killyesno && echo $killyesno)" =~ y ]]; then
+		rm -rf results
+	fi
+	echo -e "\n\e[1;4;32m------\e[1;4m s4 Cleanup \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
 fi
 
 if [ -z $yesno ]; then echo -e "\e[1;4;35m\twazaaa\e[0m"; fi
