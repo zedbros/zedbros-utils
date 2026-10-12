@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 # --- PARAMETERS ---: None => Manual mode | (runyesno: y, m_p_dir: str)
-# --- DESCRIPTION ---: 
+# --- DESCRIPTION ---: Should resolve conflicts between the available managed policies filtered by s2.
 
 yesno=${1:-$(read -p "Proceed with Venn ? (Y/n): " yesno && echo $yesno)}
 

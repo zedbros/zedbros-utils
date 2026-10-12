@@ -5,13 +5,13 @@
 git add .
 git status
 
-read -p "Do you wish to push? (Y/n): " answer
+read -n 1 -p "Do you wish to push? [Yn]: " answer
 
-if [[ -z "$answer" || "$answer" =~ ^[Yy]$ ]]; then
-	read -p "commit -m " mes
+if [[ -z "$answer" || "$answer" =~ [yY] ]]; then
+	read -p $'\ngit commit -m ' -e mes
     git commit --allow-empty --allow-empty-message -m "$mes"
     git push
 else
-    echo "Push cancelled."
+    printf "\n\e[31mPush cancelled.\e[0m\n"
 fi
 

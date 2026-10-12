@@ -26,15 +26,11 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	errors_grep_action="errors-grep-action.txt" > $errors_grep_action
 
 
-	get_shortend () {
-		echo $(echo $1 | awk -F/ '{print $NF}' | cut -d'.' -f1)
-	}
-
 	analyse () {
 		# Goes through explicit denials first and if nothing is denied.. moves on to the permissions
 		# covered by the currently analysing managed policiy.
 		local filedir=$1
-		local filename=$(get_shortend $filedir)
+		local filename=$(echo $filedir | awk -F/ '{print $NF}' | cut -d'.' -f1) # gets the m p name without .json
 		local outFile="$output_dir/shortend_$filename.txt"
 		localPassList="localPassList.txt" > $localPassList
 
@@ -218,8 +214,8 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	sort -n $list_scores_m_p -o $list_scores_m_p
 
 	echo -e "\nThere were $(cat $blackList | wc -l) managed policies removed. They were written to \e[0;36m$blackList --\e[0m"
-	echo -e "There are $(($(cat $list_m_p | wc -l)/4)) managed policies that are compatible. The list was written to \e[0;36m$list_m_p --\e[0m"
-	echo -e "\nShortend files written to $output_dir/ \e[0;36m--\e[0m"
+	echo -e "There are $(cat $list_scores_m_p | wc -l) managed policies that are compatible. The list was written to \e[0;36m$list_m_p --\e[0m"
+	
 	echo -e "\e[1;4;32m------\e[1;4m s2 Matching \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
 fi
 
