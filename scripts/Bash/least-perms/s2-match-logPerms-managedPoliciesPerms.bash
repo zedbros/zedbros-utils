@@ -43,9 +43,19 @@ AAR Allow Action Resource" > $temp_codes
 		
 		temp_sources="temp_sources.txt" > $temp_sources
 
+
+		# --- WILDCARD_APPEARS EXPLANATION --- (and the reason for two similar looking nested while loops)
+		# The wildcard_appears variable is used for deciding if every permission must be gone over or not.
+		# If there is a permission where it's source is * in the managed policies, this means that we have to go over every logPermission.
+		# The difference with there not being a * as source, means that we can cut corners. When going over log permissions, we first get it's source, which would be something like "ssm" for example. If ssm is not in the managed policy and is already in the temporary sources text file, then we can skip it entierly => avoids looping over every single managed policy permissions. (it adds ssm to the temp_sources.txt if is not in the managed policy but not in the text file.)
+		# Finally if ssm is the managed policy, we only retrieve the permissions which source is ssm. => this reduces the cover list greatly => more optimisation.
+
+		# --- logPermSource + appears EXPLANATION ---
+		# This is represented by the Contains perms ? section in the workflow. If used with the wildcard seperation, we would miss the sources with a *.
+
 		case $workflow_code in
 			"DAR")
-				wildcard_appears="$(grep "^\*" $outFile || true)"
+				local wildcard_appears="$(grep "^\*" $outFile || true)"
 				if [ -z "$wildcard_appears" ];then
 					while read -r logPerm; do
 						while read -r shortPerm; do
@@ -58,14 +68,9 @@ AAR Allow Action Resource" > $temp_codes
 					done < $logFile
 				else
 					while read -r logPerm; do
-						# TODO might be able to do a pre-sort wher we go over only the shortPerm | grep firstCharacter => shorter list than the entire file.
-						# like while read -r $(grep -... ...); do
-						# already a start in DNAR.
-						# Don't forget *|* possibilities.
-						# Making a temp file to add the sources that aren't in the outFile => avoid repetition if logFile only contains ssm and there is no ssm in the outFile for example.
-						logPermSource="$(echo $logPerm | cut -d'|' -f1)"
+						local logPermSource="$(echo $logPerm | cut -d'|' -f1)"
 						local appears="$(grep -wo $logPermSource $temp_sources || true)"
-						if [ -z "$appears" ]; then
+						if [ ! -z "$appears" ]; then
 							echo $logPermSource >> $temp_sources
 							while read -r shortPerm; do
 								if [[ $logPerm == $shortPerm ]]; then
@@ -79,7 +84,7 @@ AAR Allow Action Resource" > $temp_codes
 				fi
 				;;
 			"DANR")
-				wildcard_appears="$(grep "^\*" $outFile || true)"
+				local wildcard_appears="$(grep "^\*" $outFile || true)"
 				if [ -z "$wildcard_appears" ];then
 					while read -r logPerm; do
 						while read -r shortPerm; do
@@ -92,9 +97,9 @@ AAR Allow Action Resource" > $temp_codes
 					done < $logFile
 				else
 					while read -r logPerm; do
-						logPermSource="$(echo $logPerm | cut -d'|' -f1)"
+						local logPermSource="$(echo $logPerm | cut -d'|' -f1)"
 						local appears="$(grep -wo $logPermSource $temp_sources || true)"
-						if [ -z "$appears" ]; then
+						if [ ! -z "$appears" ]; then
 							echo $logPermSource >> $temp_sources
 							while read -r shortPerm; do
 								if [[ ! $logPerm == $shortPerm ]]; then
@@ -109,14 +114,9 @@ AAR Allow Action Resource" > $temp_codes
 				;;
 
 			"DNAR")
-				while read -r logPerm; do
-					cutLogPerm="$(echo $logPerm | cut -d'|' -f1)"
-					local appears="$(grep -wo $cutLogPerm $outFile || true)"
-					if [ -z "$appears" ]; then
-						echo $filename >> $blackList
-						continue_bool="1"
-						return
-					else
+				local wildcard_appears="$(grep "^\*" $outFile || true)"
+				if [ -z "$wildcard_appears" ];then
+					while read -r logPerm; do
 						while read -r shortPerm; do
 							if [[ ! $logPerm == $shortPerm ]]; then
 								echo $filename >> $blackList
@@ -124,18 +124,32 @@ AAR Allow Action Resource" > $temp_codes
 								return
 							fi
 						done < $outFile
-					fi
-				done < $logFile
+					done < $logFile
+				else
+					while read -r logPerm; do
+						local logPermSource="$(echo $logPerm | cut -d'|' -f1)"
+						local appears="$(grep -wo $logPermSource $temp_sources || true)"
+						if [ -z "$appears" ]; then
+							echo $filename >> $blackList
+							continue_bool="1"
+							return
+						else
+							echo $logPermSource >> $temp_sources
+							while read -r shortPerm; do
+								if [[ ! $logPerm == $shortPerm ]]; then
+									echo $filename >> $blackList
+									continue_bool="1"
+									return
+								fi
+							done < $outFile
+						fi
+					done < $logFile
+				fi
 				;;
 			"DNANR")
-				while read -r logPerm; do
-					cutLogPerm="$(echo $logPerm | cut -d'|' -f1)"
-					local appears="$(grep -wo $cutLogPerm $outFile || true)"
-					if [ -z "$appears" ]; then
-						echo $filename >> $blackList
-						continue_bool="1"
-						return
-					else
+				local wildcard_appears="$(grep "^\*" $outFile || true)"
+				if [ -z "$wildcard_appears" ];then
+					while read -r logPerm; do
 						while read -r shortPerm; do
 							if [[ $logPerm == $shortPerm ]]; then
 								echo $filename >> $blackList
@@ -143,40 +157,84 @@ AAR Allow Action Resource" > $temp_codes
 								return
 							fi
 						done < $outFile
-					fi
-				done < $logFile
+					done < $logFile
+				else
+					while read -r logPerm; do
+						local logPermSource="$(echo $logPerm | cut -d'|' -f1)"
+						local appears="$(grep -wo $logPermSource $temp_sources || true)"
+						if [ -z "$appears" ]; then
+							echo $filename >> $blackList
+							continue_bool="1"
+							return
+						else
+							echo $logPermSource >> $temp_sources
+							while read -r shortPerm; do
+								if [[ $logPerm == $shortPerm ]]; then
+									echo $filename >> $blackList
+									continue_bool="1"
+									return
+								fi
+							done < $outFile
+						fi
+					done < $logFile
+				fi
 				;;
 
 			"ANAR")
-				while read -r logPerm; do
-					cutLogPerm="$(echo $logPerm | cut -d'|' -f1)"
-					local appears="$(grep -wo $cutLogPerm $outFile || true)"
-					if [ -z "$appears" ]; then
-						echo "$filename|$logPerm" >> $localPassList
-					else
+				local wildcard_appears="$(grep "^\*" $outFile || true)"
+				if [ -z "$wildcard_appears" ];then
+					while read -r logPerm; do
 						while read -r shortPerm; do
 							if [[ ! $logPerm == $shortPerm ]]; then
-								echo "$filename|$logPerm" >> $localPassList
+								# TODO add to pass
 							fi
 						done < $outFile
-					fi
-				done < $logFile
+					done < $logFile
+				else
+					while read -r logPerm; do
+						local logPermSource="$(echo $logPerm | cut -d'|' -f1)"
+						local appears="$(grep -wo $logPermSource $temp_sources || true)"
+						if [ -z "$appears" ]; then
+							# TODO add to pass
+						else
+							echo $logPermSource >> $temp_sources
+							while read -r shortPerm; do
+								if [[ ! $logPerm == $shortPerm ]]; then
+									# TODO add to pass
+								fi
+							done < $outFile
+						fi
+					done < $logFile
+				fi
 				;;
 			"ANANR")
-				while read -r logPerm; do
-					cutLogPerm="$(echo $logPerm | cut -d'|' -f1)"
-					local appears="$(grep -wo $cutLogPerm $outFile || true)"
-					if [ -z "$appears" ]; then
-						echo "$filename|$logPerm" >> $localPassList
-					else
+				local wildcard_appears="$(grep "^\*" $outFile || true)"
+				if [ -z "$wildcard_appears" ];then
+					while read -r logPerm; do
 						while read -r shortPerm; do
 							if [[ $logPerm == $shortPerm ]]; then
-								echo "$filename|$logPerm" >> $localPassList
+								# TODO add to pass
 							fi
 						done < $outFile
-					fi
-				done < $logFile
+					done < $logFile
+				else
+					while read -r logPerm; do
+						local logPermSource="$(echo $logPerm | cut -d'|' -f1)"
+						local appears="$(grep -wo $logPermSource $temp_sources || true)"
+						if [ -z "$appears" ]; then
+							# TODO add to pass
+						else
+							echo $logPermSource >> $temp_sources
+							while read -r shortPerm; do
+								if [[ $logPerm == $shortPerm ]]; then
+									# TODO add to pass
+								fi
+							done < $outFile
+						fi
+					done < $logFile
+				fi
 				;;
+
 
 			"AAR")
 				local nbr_of_allowed=0
@@ -199,6 +257,8 @@ AAR Allow Action Resource" > $temp_codes
 					fi 
 				done < $outFile
 
+				# TODO put this into it's own function after the last Allow case match
+				# TODO remove explicit denials from allow list if any and if reached this stage.
 				sort -u $localPassList -o $localPassList
 				nbr_of_covered_permissions=$(cat $localPassList | wc -l)
 				
@@ -210,7 +270,7 @@ AAR Allow Action Resource" > $temp_codes
 					SCORE="0.00000"
 				else
 					SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 * z2}')
-				fi	
+				fi
 				if [[ "$SCORE" =~ ^0\.0*$ ]]; then
 					score_color="\e[31m"
 				else
