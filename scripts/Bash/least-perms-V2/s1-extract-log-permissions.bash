@@ -47,7 +47,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	if [ "$runyesno" == "y" ]; then
 		thisScriptDir=$(dirname "$0")
 		m_p_dir="${4:-}"
-		"$thisScriptDir/s2-match-logPerms-managedPoliciesPerms.bash" "y" $m_p_dir
+		"$thisScriptDir/v2-s2-match-logPerms-managedPoliciesPerms.bash" "y" $m_p_dir
 	else
 		echo -e "\e[1;34mwazaaa\e[0m"
 	fi
