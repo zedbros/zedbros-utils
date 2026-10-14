@@ -10,7 +10,7 @@ You need:
 1. A folder of collected AWS Cloudtrail logs
 2. Either
     - Automatic:
-        Run the `aquire-this-fine-functionnality.sh`
+        Run the `aquire-this-fine-functionnality.bash`
     - Manual:
         1. A folder of AWS Managed Policies (recommended: [aws-managed-policy-tracker](https://github.com/kisst/aws-managed-policy-tracker))
         2. A copy of this folder of scripts
@@ -24,7 +24,7 @@ You need:
 3. Copy this folder into wherever you like but make sure to be in the "custom/path" when calling the following scripts. ex: "path/to/scripts"
 
 3. EITHER
-    - Call `sh path/to/scripts/automatic.sh` to get the final results
+    - Call `path/to/scripts/automatic.bash` to get the final results
     or
     - Do everything manually
 3. (manual mode)
