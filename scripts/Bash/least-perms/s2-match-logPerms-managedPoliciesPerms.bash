@@ -51,10 +51,6 @@ AAR Allow Action Resource" > $temp_codes
 		# This is represented by the Contains perms ? section in the workflow. If used with the wildcard seperation, we would miss the sources with a *.
 
 		case $workflow_code in
-			"AANR" | "ANAR" | "ANANR")
-				printf "\nEntered other\n"
-				echo hi >/dev/null
-				;;
 			"DAR")
 				printf "\nEntered DAR\n"
 				local wildcard_appears="$(grep "^\*" $outFile || true)"
@@ -242,38 +238,45 @@ AAR Allow Action Resource" > $temp_codes
 				fi
 				;;
 
-
 			"AAR")
 				printf "\nEntered AAR\n"
-				local nbr_of_allowed=0
+				nbr_of_allowed=0
+				isAdmin=""
 				while read -r shortPerm; do
-					local shortPermSource="$(echo $shortPerm | cut -d'|' -f1)"
-					local appears="$(grep -wo $shortPermSource $logFile || true)"
-					if [ -z "$appears" ]; then
-						while read -r logPerm; do
-							if [[ $logPerm == $shortPerm ]]; then
-								# --- Handles the coverage ---
-								echo "$filename|$logPerm" >> $localPassList
-							fi
-						done < $logFile
-					fi
-					# --- Handles the overflow ---
-					shortPermSource="$(echo $shortPerm | cut -d'|' -f1 | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
-					if [ "$shortPermSource" == "*" ]; then
+					local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
+					if [ "$shortPermSourceAndAction" == "*" ]; then
 						printf "\nStar (*) reached\n"
 						nbr_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
+						isAdmin="0"
 					else
-						shortPermAction="$(echo $shortPerm | cut -d'|' -f1 | cut -d':' -f2)"
-						nbr_of_appearences=$(cat "actions/$shortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>>"$errors_grep_action" | wc -l) && true
+						local shortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1)"
+						local shortPermAction="$(echo $shortPerm | cut -d'|' -f1 | cut -d':' -f2)"
+
+						local appears="$(grep "^$shortPermSource" "$logFile" || true)" # watch out it's on the logFile for the allow since the order of loops in inversed. => used to get the overflow_level.
+						if [ ! -z "$appears" ]; then
+							for logPerm in $appears; do
+								if [[ $logPerm == $shortPerm ]]; then
+									# --- Handles the coverage ---
+									echo "$filename|$logPerm" >> $localPassList
+								fi
+							done
+						fi
+						# --- Handles the overflow ---
+						local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
+						local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>>"$errors_grep_action" | wc -l) && true
+
 						nbr_of_allowed=$(($nbr_of_allowed+$nbr_of_appearences))
-					fi 
+					fi
 				done < $outFile
 
 				# TODO put this into it's own function after the last Allow case match
 				# TODO remove explicit denials from allow list if any and if reached this stage.
-				sort -u $localPassList -o $localPassList
-				nbr_of_covered_permissions=$(cat $localPassList | wc -l)
-				
+				if [ -z "$isAdmin" ];then
+					sort -u $localPassList -o $localPassList
+					nbr_of_covered_permissions=$(cat $localPassList | wc -l)
+				else
+					nbr_of_covered_permissions=$nbr_of_log_permissions
+				fi
 				coverageString="$nbr_of_covered_permissions/$nbr_of_log_permissions"
 				coverageFloat=$(awk -v x1="$nbr_of_covered_permissions" -v x2="$nbr_of_log_permissions" 'BEGIN { printf "%.5f", x1 / x2 * 100 }')
 				overflowLevelString="$nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS"
@@ -294,13 +297,12 @@ AAR Allow Action Resource" > $temp_codes
 
 				# Machine readable list (for analysis)
 				echo "$SCORE $filename" >> "$list_scores_m_p"
-				
+
 				# cat $localPassList >> $passList
 				rm $localPassList
 				;;
 			*)
 				printf "\n\e[31mWrong workflow code given.\e[0m\n"
-				exit 1
 				;;
 		esac
 	}
@@ -326,13 +328,10 @@ AAR Allow Action Resource" > $temp_codes
 
 	analyse () {
 		continue_bool=""
-		# Goes through explicit denials first and if nothing is denied.. moves on to the permissions
-		# covered by the currently analysing managed policiy.
 		local filedir=$1
 		local filename=$(echo $filedir | awk -F/ '{print $NF}' | cut -d'.' -f1) # gets the m p name without .json
 		outFile="$output_dir/shortend_$filename.txt"
 		localPassList="localPassList.txt" > $localPassList
-
 
 		while read -r line; do
 			if [ ! -z "$continue_bool" ]; then return; fi
