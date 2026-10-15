@@ -9,7 +9,7 @@ parseTimer () {
 	echo $((($h2-$h1)%24))h$((($m2-$m1)%60))m$((($s2-$s1)%60))s
 }
 
-startTime=$(date +"%T")
+startTime="$(date +"%T")"
 sleep 62
 parseTimer $startTime
 
