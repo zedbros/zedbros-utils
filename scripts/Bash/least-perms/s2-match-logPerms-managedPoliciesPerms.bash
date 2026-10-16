@@ -14,9 +14,8 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	list_m_p="list-managed-policies.txt" > $list_m_p
 	list_scores_m_p="list-scores-managed-policies.txt" > $list_scores_m_p
 	blackList="blackList.txt" > $blackList
-	output_dir="shortend_managed_policies_folder"
-	mkdir $output_dir 2>/dev/null || true
-	rm -rf $output_dir/*
+	mkdir "passLists" 2>/dev/null || true && rm -rf "passLists/*"
+	output_dir="shortend_managed_policies_folder" && mkdir $output_dir 2>/dev/null || true && rm -rf $output_dir/*
 	TOTAL_NUMBER_OF_AWS_ACTIONS=$(counter=0 && for file in actions/*; do counter=$(($counter+$(cat $file | wc -l))); done && echo $counter)
 
 	# TODO evidently and iotevents appear a couple time and slow down the scoring process.. if we add theses sources to this temp file and grep the source, it should be faster.
@@ -179,7 +178,6 @@ ANANR Allow NotAction NotResource" > $temp_codes
 				while read -r shortPerm; do
 					local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
 					if [ "$shortPermSourceAndAction" == "*" ]; then
-						printf "\nResource star (*) reached\n"
 						nbr_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
 						isAdmin="0"
 					else
@@ -191,7 +189,7 @@ ANANR Allow NotAction NotResource" > $temp_codes
 							for logPerm in $appears; do
 								if [[ $logPerm == $shortPerm ]]; then
 									# --- Handles the coverage ---
-									echo "$filename|$logPerm" >> $passList
+									echo "$logPerm" >> $passList
 								fi
 							done
 						fi
@@ -205,38 +203,37 @@ ANANR Allow NotAction NotResource" > $temp_codes
 					fi
 				done < $outFile
 				;;
-			"AANR")
-				# printf "\nEntered AANR\n"
-				while read -r shortPerm; do
-					local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
-					if [ "$shortPermSourceAndAction" == "*" ]; then
-						printf "\nNotResource star (*) reached\n"
-						nbr_not_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
-						isAdmin="0"
-					else
-						local shortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1)"
-						local shortPermAction="$(echo $shortPermSourceAndAction | cut -d':' -f2)"
-
-						local appears="$(grep "^$shortPermSource" "$logFile" || true)" # watch out it's on the logFile for the allow since the order of loops in inversed. => used to get the overflow_level.
-						if [ ! -z "$appears" ]; then
-							for logPerm in $appears; do
-								if [[ $logPerm == $shortPerm ]]; then
-									# --- Handles the coverage ---
-									echo $logPerm == $shortPerm
-									echo "$filename|$logPerm" >> $notPassList
-								fi
-							done
-						fi
-						# --- Handles the overflow ---
-						if [ -z "$(grep "$shortPermSourceAndAction" "$temp_already_seen_sources_actions_NotResource")" ]; then
-							local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
-							local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>"/dev/null" | wc -l) && true
-							nbr_of_not_allowed=$(($nbr_of_not_allowed+$nbr_of_appearences))
-							echo $shortPermSourceAndAction >> $temp_already_seen_sources_actions_NotResource
-						fi
-					fi
-				done < $outFile
-				;;
+			# "AANR")
+			# 	# printf "\nEntered AANR\n"
+			# 	while read -r shortPerm; do
+			# 		local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
+			# 		if [ "$shortPermSourceAndAction" == "*" ]; then
+			# 			nbr_not_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
+			# 			isAdmin="0"
+			# 		else
+			# 			local shortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1)"
+			# 			local shortPermAction="$(echo $shortPermSourceAndAction | cut -d':' -f2)"
+			#
+			# 			local appears="$(grep "^$shortPermSource" "$logFile" || true)" # watch out it's on the logFile for the allow since the order of loops in inversed. => used to get the overflow_level.
+			# 			if [ ! -z "$appears" ]; then
+			# 				for logPerm in $appears; do
+			# 					if [[ $logPerm == $shortPerm ]]; then
+			# 						# --- Handles the coverage ---
+			# 						echo $logPerm == $shortPerm
+			# 						echo "$filename|$logPerm" >> $notPassList
+			# 					fi
+			# 				done
+			# 			fi
+			# 			# --- Handles the overflow ---
+			# 			if [ -z "$(grep "$shortPermSourceAndAction" "$temp_already_seen_sources_actions_NotResource")" ]; then
+			# 				local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
+			# 				local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>"/dev/null" | wc -l) && true
+			# 				nbr_of_not_allowed=$(($nbr_of_not_allowed+$nbr_of_appearences))
+			# 				echo $shortPermSourceAndAction >> $temp_already_seen_sources_actions_NotResource
+			# 			fi
+			# 		fi
+			# 	done < $outFile
+			# 	;;
 
 			# "ANAR")
 			# 	# printf "\nEntered ANAR\n"
@@ -323,17 +320,21 @@ ANANR Allow NotAction NotResource" > $temp_codes
 		# echo $TOTAL_NUMBER_OF_AWS_ACTIONS $nbr_of_not_allowed $nbr_of_allowed
 
 		if [[ ! "$nbr_of_covered_permissions" =~ 0 ]]; then
+			# for venn diagram
+			cat $passList >> "passLists/$filename.txt" 
+
 			coverageString="$nbr_of_covered_permissions/$nbr_of_log_permissions"
 			coverageFloat=$(awk -v x1="$nbr_of_covered_permissions" -v x2="$nbr_of_log_permissions" 'BEGIN { printf "%.5f", x1 / x2 * 100 }')
 
 			overflowLevelString="$total_nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS"
-			overflowLevelFloat=$(awk -v y1="$total_nbr_of_allowed" -v y2="$TOTAL_NUMBER_OF_AWS_ACTIONS" 'BEGIN { printf "%.5f", 1 / (y1 / y2 * 100)}')
+			overflowLevelPercentage=$(awk -v y1="$total_nbr_of_allowed" -v y2="$TOTAL_NUMBER_OF_AWS_ACTIONS" 'BEGIN { printf "%.5f", y1 / y2 * 100}')
+			overflowLevelFloat=$(awk -v z1="$overflowLevelPercentage" 'BEGIN { printf "%.5f", 1 / z1}')
 
 			if [[ "$total_nbr_of_allowed" =~ "$TOTAL_NUMBER_OF_AWS_ACTIONS" ]]; then
 				SCORE="0.00000"
 				score_color="\e[33m"
 			else
-				SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 * z2}')
+				SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 + z2}')
 				if [[ "$SCORE" =~ ^0\.0*$ ]]; then
 					score_color="\e[31m"
 				else
@@ -341,7 +342,7 @@ ANANR Allow NotAction NotResource" > $temp_codes
 				fi
 			fi
 			# --- Human readable list (for show)
-			echo -e "$filename\n\tcoverage       : [$coverageString] => $coverageFloat %\n\toverflow level : [$overflowLevelString] => $overflowLevelFloat %\n\t\tSCORE => $score_color$SCORE\e[0m" >> "$list_m_p"
+			echo -e "$filename\n\tcoverage       : [$coverageString] => $coverageFloat %\n\toverflow level : [$overflowLevelString] => $overflowLevelPercentage %\n\t\tSCORE => $score_color$SCORE\e[0m" >> "$list_m_p"
 			# --- Machine readable list (for analysis)
 			echo "$SCORE $filename" >> "$list_scores_m_p"
 		fi
@@ -439,6 +440,6 @@ if [ -z ${1:-} ]; then
 	echo -e "\e[1;32mwazaaa"
 else
 	thisScriptDir=$(dirname "$0")
-	"$thisScriptDir/s3-venn.bash" "y" "$output_dir"
+	"$thisScriptDir/s3-venn.bash" "y" "passLists"
 fi
 

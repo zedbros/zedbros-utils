@@ -52,7 +52,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	echo -e "\e[4;33m------ s4 Cleanup started.. --\e[0m"
 
 	out_folder=$(vers "results")
-	mv log-*.txt list*.txt *ist.txt shortend_managed_policies_folder errors*.txt $out_folder 2>/dev/null || true
+	mv *.txt shortend_managed_policies_folder passLists $out_folder 2>/dev/null || true
 	echo -e "All files were moved to \e[4;36m$out_folder/\e[0m. \e[36m--\e[0m"
 
 	# kawalski
