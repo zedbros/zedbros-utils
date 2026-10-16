@@ -7,14 +7,13 @@ set -euo pipefail
 yesno=${1:-$(read -p "Do you want to parse the managed policies ? (Y/n): " yesno && echo $yesno)}
 
 if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
-	echo -e "\e[4;33m--- s2 Matching started.. --\e[0m"
+	echo -e "\e[4;33m------ s2 Matching started.. --\e[0m"
 
 	logFile="log-permissions.txt"
 	nbr_of_log_permissions=$(cat $logFile | wc -l)
 	list_m_p="list-managed-policies.txt" > $list_m_p
 	list_scores_m_p="list-scores-managed-policies.txt" > $list_scores_m_p
 	blackList="blackList.txt" > $blackList
-	passList="passList.txt" > $passList
 	output_dir="shortend_managed_policies_folder"
 	mkdir $output_dir 2>/dev/null || true
 	rm -rf $output_dir/*
@@ -24,18 +23,16 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	# temp_actions_blacklist="temp_actions_blacklist.txt" > $temp_actions_blacklist
 
 	errors_cat_action="errors-cat-action.txt" > $errors_cat_action
-	errors_grep_action="errors-grep-action.txt" > $errors_grep_action
-
 
 	temp_codes="temp_codes.txt"
 	echo "DAR Deny Action Resource
 DANR Deny Action NotResource
 DNAR Deny NotAction Resource
 DNANR Deny NotAction NotResource
-ANAR Allow NotAction Resource
-ANANR Allow NotAction NotResource
+AAR Allow Action Resource
 AANR Allow Action NotResource
-AAR Allow Action Resource" > $temp_codes
+ANAR Allow NotAction Resource
+ANANR Allow NotAction NotResource" > $temp_codes
 
 	
 	reader () {
@@ -52,19 +49,9 @@ AAR Allow Action Resource" > $temp_codes
 
 		case $workflow_code in
 			"DAR")
-				printf "\nEntered DAR\n"
+				# printf "\nEntered DAR\n"
 				local wildcard_appears="$(grep "^\*" $outFile || true)"
-				if [ ! -z "$wildcard_appears" ];then
-					while read -r logPerm; do
-						while read -r shortPerm; do
-							if [[ $logPerm == $shortPerm ]]; then
-								echo $filename >> $blackList
-								continue_bool="1"
-								return
-							fi
-						done < $outFile
-					done < $logFile
-				else
+				if [ -z "$wildcard_appears" ];then
 					while read -r logPerm; do
 						local logPermSource="$(echo $logPerm | cut -d'|' -f1 | cut -d':' -f1)"
 						local appears="$(grep "^$logPermSource" "$outFile" || true)"
@@ -78,22 +65,22 @@ AAR Allow Action Resource" > $temp_codes
 							done
 						fi
 					done < $logFile
-				fi
-				;;
-			"DANR")
-				printf "\nEntered DANR\n"
-				local wildcard_appears="$(grep "^\*" $outFile || true)"
-				if [ ! -z "$wildcard_appears" ];then
+				else
 					while read -r logPerm; do
 						while read -r shortPerm; do
-							if [[ ! $logPerm == $shortPerm ]]; then
+							if [[ $logPerm == $shortPerm ]]; then
 								echo $filename >> $blackList
 								continue_bool="1"
 								return
 							fi
 						done < $outFile
 					done < $logFile
-				else
+				fi
+				;;
+			"DANR")
+				# printf "\nEntered DANR\n"
+				local wildcard_appears="$(grep "^\*" $outFile || true)"
+				if [ -z "$wildcard_appears" ];then
 					while read -r logPerm; do
 						local logPermSource="$(echo $logPerm | cut -d'|' -f1 | cut -d':' -f1)"
 						local appears="$(grep "^$logPermSource" "$outFile" || true)"
@@ -106,24 +93,24 @@ AAR Allow Action Resource" > $temp_codes
 								fi
 							done
 						fi
+					done < $logFile
+				else
+					while read -r logPerm; do
+						while read -r shortPerm; do
+							if [[ ! $logPerm == $shortPerm ]]; then
+								echo $filename >> $blackList
+								continue_bool="1"
+								return
+							fi
+						done < $outFile
 					done < $logFile
 				fi
 				;;
 
 			"DNAR")
-				printf "\nEntered DNAR\n"
+				# printf "\nEntered DNAR\n"
 				local wildcard_appears="$(grep "^\*" $outFile || true)"
-				if [ ! -z "$wildcard_appears" ];then
-					while read -r logPerm; do
-						while read -r shortPerm; do
-							if [[ ! $logPerm == $shortPerm ]]; then
-								echo $filename >> $blackList
-								continue_bool="1"
-								return
-							fi
-						done < $outFile
-					done < $logFile
-				else
+				if [ -z "$wildcard_appears" ];then
 					while read -r logPerm; do
 						local logPermSource="$(echo $logPerm | cut -d'|' -f1 | cut -d':' -f1)"
 						local appears="$(grep "^$logPermSource" "$outFile" || true)"
@@ -140,23 +127,23 @@ AAR Allow Action Resource" > $temp_codes
 								fi
 							done
 						fi
+					done < $logFile
+				else
+					while read -r logPerm; do
+						while read -r shortPerm; do
+							if [[ ! $logPerm == $shortPerm ]]; then
+								echo $filename >> $blackList
+								continue_bool="1"
+								return
+							fi
+						done < $outFile
 					done < $logFile
 				fi
 				;;
 			"DNANR")
-				printf "\nEntered DNANR\n"
-				local wildcard_aphttps://web.whatsapp.com/pears="$(grep "^\*" $outFile || true)"
-				if [ ! -z "$wildcard_appears" ];then
-					while read -r logPerm; do
-						while read -r shortPerm; do
-							if [[ $logPerm == $shortPerm ]]; then
-								echo $filename >> $blackList
-								continue_bool="1"
-								return
-							fi
-						done < $outFile
-					done < $logFile
-				else
+				# printf "\nEntered DNANR\n"
+				local wildcard_appears="$(grep "^\*" $outFile || true)"
+				if [ -z "$wildcard_appears" ];then
 					while read -r logPerm; do
 						local logPermSource="$(echo $logPerm | cut -d'|' -f1 | cut -d':' -f1)"
 						local appears="$(grep "^$logPermSource" "$outFile" || true)"
@@ -174,137 +161,194 @@ AAR Allow Action Resource" > $temp_codes
 							done
 						fi
 					done < $logFile
-				fi
-				;;
-
-			"ANAR")
-				printf "\nEntered ANAR\n"
-				local wildcard_appears="$(grep "^\*" $outFile || true)"
-				if [ ! -z "$wildcard_appears" ];then
-					while read -r logPerm; do
-						while read -r shortPerm; do
-							if [[ ! $logPerm == $shortPerm ]]; then
-								# TODO add to pass
-								>/dev/null
-							fi
-						done < $outFile
-					done < $logFile
 				else
-					while read -r logPerm; do
-						local logPermSource="$(echo $logPerm | cut -d'|' -f1 | cut -d':' -f1)"
-						local appears="$(grep "^$logPermSource" "$outFile" || true)"
-						if [ -z "$appears" ]; then
-							# TODO add to pass
-							>/dev/null
-						else
-							for shortPerm in $appears; do
-								if [[ ! $logPerm == $shortPerm ]]; then
-									# TODO add to pass
-									>/dev/null
-								fi
-							done
-						fi
-					done < $logFile
-				fi
-				;;
-			"ANANR")
-				printf "\nEntered ANANR\n"
-				local wildcard_appears="$(grep "^\*" $outFile || true)"
-				if [ ! -z "$wildcard_appears" ];then
 					while read -r logPerm; do
 						while read -r shortPerm; do
 							if [[ $logPerm == $shortPerm ]]; then
-								# TODO add to pass
-								>/dev/null
+								echo $filename >> $blackList
+								continue_bool="1"
+								return
 							fi
 						done < $outFile
-					done < $logFile
-				else
-					while read -r logPerm; do
-						local logPermSource="$(echo $logPerm | cut -d'|' -f1 | cut -d':' -f1)"
-						local appears="$(grep "^$logPermSource" "$outFile" || true)"
-						if [ -z "$appears" ]; then
-							# TODO add to pass
-							>/dev/null
-						else
-							for shortPerm in $appears; do
-								if [[ $logPerm == $shortPerm ]]; then
-									# TODO add to pass
-									>/dev/null
-								fi
-							done
-						fi
 					done < $logFile
 				fi
 				;;
 
 			"AAR")
-				printf "\nEntered AAR\n"
-				nbr_of_allowed=0
-				isAdmin=""
+				# printf "\nEntered AAR\n"
 				while read -r shortPerm; do
 					local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
 					if [ "$shortPermSourceAndAction" == "*" ]; then
-						printf "\nStar (*) reached\n"
+						printf "\nResource star (*) reached\n"
 						nbr_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
 						isAdmin="0"
 					else
 						local shortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1)"
-						local shortPermAction="$(echo $shortPerm | cut -d'|' -f1 | cut -d':' -f2)"
+						local shortPermAction="$(echo $shortPermSourceAndAction | cut -d':' -f2)"
 
 						local appears="$(grep "^$shortPermSource" "$logFile" || true)" # watch out it's on the logFile for the allow since the order of loops in inversed. => used to get the overflow_level.
 						if [ ! -z "$appears" ]; then
 							for logPerm in $appears; do
 								if [[ $logPerm == $shortPerm ]]; then
 									# --- Handles the coverage ---
-									echo "$filename|$logPerm" >> $localPassList
+									echo "$filename|$logPerm" >> $passList
 								fi
 							done
 						fi
 						# --- Handles the overflow ---
-						local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
-						local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>>"$errors_grep_action" | wc -l) && true
-
-						nbr_of_allowed=$(($nbr_of_allowed+$nbr_of_appearences))
+						if [ -z "$(grep "$shortPermSourceAndAction" "$temp_already_seen_sources_actions_Resource")" ]; then
+							local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
+							local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>"/dev/null" | wc -l) && true
+							nbr_of_allowed=$(($nbr_of_allowed+$nbr_of_appearences))
+							echo $shortPermSourceAndAction >> $temp_already_seen_sources_actions_Resource
+						fi
 					fi
 				done < $outFile
+				;;
+			"AANR")
+				# printf "\nEntered AANR\n"
+				while read -r shortPerm; do
+					local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
+					if [ "$shortPermSourceAndAction" == "*" ]; then
+						printf "\nNotResource star (*) reached\n"
+						nbr_not_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
+						isAdmin="0"
+					else
+						local shortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1)"
+						local shortPermAction="$(echo $shortPermSourceAndAction | cut -d':' -f2)"
 
-				# TODO put this into it's own function after the last Allow case match
-				# TODO remove explicit denials from allow list if any and if reached this stage.
-				if [ -z "$isAdmin" ];then
-					sort -u $localPassList -o $localPassList
-					nbr_of_covered_permissions=$(cat $localPassList | wc -l)
-				else
-					nbr_of_covered_permissions=$nbr_of_log_permissions
-				fi
-				coverageString="$nbr_of_covered_permissions/$nbr_of_log_permissions"
-				coverageFloat=$(awk -v x1="$nbr_of_covered_permissions" -v x2="$nbr_of_log_permissions" 'BEGIN { printf "%.5f", x1 / x2 * 100 }')
-				overflowLevelString="$nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS"
-				overflowLevelFloat=$(awk -v y1="$nbr_of_allowed" -v y2="$TOTAL_NUMBER_OF_AWS_ACTIONS" 'BEGIN { printf "%.5f", y1 / y2 * 100}')
-				if [[ "$nbr_of_allowed" =~ "$TOTAL_NUMBER_OF_AWS_ACTIONS" ]]; then
-					SCORE="0.00000"
-				else
-					SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 * z2}')
-				fi
+						local appears="$(grep "^$shortPermSource" "$logFile" || true)" # watch out it's on the logFile for the allow since the order of loops in inversed. => used to get the overflow_level.
+						if [ ! -z "$appears" ]; then
+							for logPerm in $appears; do
+								if [[ $logPerm == $shortPerm ]]; then
+									# --- Handles the coverage ---
+									echo $logPerm == $shortPerm
+									echo "$filename|$logPerm" >> $notPassList
+								fi
+							done
+						fi
+						# --- Handles the overflow ---
+						if [ -z "$(grep "$shortPermSourceAndAction" "$temp_already_seen_sources_actions_NotResource")" ]; then
+							local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
+							local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>"/dev/null" | wc -l) && true
+							nbr_of_not_allowed=$(($nbr_of_not_allowed+$nbr_of_appearences))
+							echo $shortPermSourceAndAction >> $temp_already_seen_sources_actions_NotResource
+						fi
+					fi
+				done < $outFile
+				;;
+
+			# "ANAR")
+			# 	# printf "\nEntered ANAR\n"
+			# 	local wildcard_appears="$(grep "^\*" $outFile || true)"
+			# 	if [ ! -z "$wildcard_appears" ];then
+			# 		while read -r logPerm; do
+			# 			while read -r shortPerm; do
+			# 				if [[ ! $logPerm == $shortPerm ]]; then
+			# 					# TODO add to pass
+			# 					>/dev/null
+			# 				fi
+			# 			done < $outFile
+			# 		done < $logFile
+			# 	else
+			# 		while read -r logPerm; do
+			# 			local logPermSource="$(echo $logPerm | cut -d'|' -f1 | cut -d':' -f1)"
+			# 			local appears="$(grep "^$logPermSource" Screenshot_20261015_192825.png"$outFile" || true)"
+			# 			if [ -z "$appears" ]; then
+			# 				# TODO add to pass
+			# 				>/dev/null
+			# 			else
+			# 				for shortPerm in $appears; do
+			# 					if [[ ! $logPerm == $shortPerm ]]; then
+			# 						# TODO add to pass
+			# 						>/dev/null
+			# 					fi
+			# 				done
+			# 			fi
+			# 		done < $logFile
+			# 	fi
+			# 	;;
+			# "ANANR")
+			# 	# printf "\nEntered ANANR\n"
+			# 	local wildcard_appears="$(grep "^\*" $outFile || true)"
+			# 	if [ ! -z "$wildcard_appears" ];then
+			# 		while read -r logPerm; do
+			# 			while read -r shortPerm; do
+			# 				if [[ $logPerm == $shortPerm ]]; then
+			# 					# TODO add to pass
+			# 					>/dev/null
+			# 				fi
+			# 			done < $outFile
+			# 		done < $logFile
+			# 	else
+			# 		while read -r logPerm; do
+			# 			local logPermSource="$(echo $logPerm | cut -d'|' -f1 | cut -d':' -f1)"
+			# 			local appears="$(grep "^$logPermSource" "$outFile" || true)"
+			# 			if [ -z "$appears" ]; then
+			# 				# TODO add to pass
+			# 				>/dev/null
+			# 			else
+			# 				for shortPerm in $appears; do
+			# 					if [[ $logPerm == $shortPerm ]]; then
+			# 						# TODO add to pass
+			# 						>/dev/null
+			# 					fi
+			# 				done
+			# 			fi
+			# 		done < $logFile
+			# 	fi
+			# 	;;
+			*)
+				printf "\n\e[31mWrong workflow code given.\e[0m\n"
+				;;
+		esac
+	}
+
+	parseAllow () {
+		# TODO remove explicit denials from allow list if any and if reached this stage.
+		if [ -z "$isAdmin" ];then
+			sort -u $passList -o $passList
+			if [[ "$nbr_of_not_allowed" =~ 0 ]]; then
+				nbr_of_covered_permissions=$(cat $passList | wc -l)
+				total_nbr_of_allowed=$nbr_of_allowed
+			else
+				nbr_of_covered_permissions=$(($nbr_of_log_permissions-$nbr_of_not_allowed+$nbr_of_allowed))
+				total_nbr_of_allowed=$(($TOTAL_NUMBER_OF_AWS_ACTIONS-$nbr_of_not_allowed+$nbr_of_allowed))
+			fi
+		else
+			nbr_of_covered_permissions=$nbr_of_log_permissions
+			total_nbr_of_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
+		fi
+
+		# echo $TOTAL_NUMBER_OF_AWS_ACTIONS $nbr_of_not_allowed $nbr_of_allowed
+
+		if [[ ! "$nbr_of_covered_permissions" =~ 0 ]]; then
+			coverageString="$nbr_of_covered_permissions/$nbr_of_log_permissions"
+			coverageFloat=$(awk -v x1="$nbr_of_covered_permissions" -v x2="$nbr_of_log_permissions" 'BEGIN { printf "%.5f", x1 / x2 * 100 }')
+
+			overflowLevelString="$total_nbr_of_allowed/$TOTAL_NUMBER_OF_AWS_ACTIONS"
+			overflowLevelFloat=$(awk -v y1="$total_nbr_of_allowed" -v y2="$TOTAL_NUMBER_OF_AWS_ACTIONS" 'BEGIN { printf "%.5f", 1 / (y1 / y2 * 100)}')
+
+			if [[ "$total_nbr_of_allowed" =~ "$TOTAL_NUMBER_OF_AWS_ACTIONS" ]]; then
+				SCORE="0.00000"
+				score_color="\e[33m"
+			else
+				SCORE=$(awk -v z1="$coverageFloat" -v z2="$overflowLevelFloat" 'BEGIN { printf "%.5f", z1 * z2}')
 				if [[ "$SCORE" =~ ^0\.0*$ ]]; then
 					score_color="\e[31m"
 				else
 					score_color="\e[32m"
 				fi
-
-				# Human readable list (for show)
-				echo -e "$filename\n\tcoverage       : [$coverageString] => $coverageFloat %\n\toverflow level : [$overflowLevelString] => $overflowLevelFloat %\n\t\tSCORE => $score_color$SCORE\e[0m" >> "$list_m_p"
-
-				# Machine readable list (for analysis)
-				echo "$SCORE $filename" >> "$list_scores_m_p"
-
-				# cat $localPassList >> $passList
-				rm $localPassList
-				;;
-			*)
-				printf "\n\e[31mWrong workflow code given.\e[0m\n"
-				;;
-		esac
+			fi
+			# --- Human readable list (for show)
+			echo -e "$filename\n\tcoverage       : [$coverageString] => $coverageFloat %\n\toverflow level : [$overflowLevelString] => $overflowLevelFloat %\n\t\tSCORE => $score_color$SCORE\e[0m" >> "$list_m_p"
+			# --- Machine readable list (for analysis)
+			echo "$SCORE $filename" >> "$list_scores_m_p"
+		fi
+		rm $passList
+		rm $notPassList
+		rm $temp_already_seen_sources_actions_Resource
+		rm $temp_already_seen_sources_actions_NotResource
 	}
 
 	main_call () {
@@ -331,12 +375,25 @@ AAR Allow Action Resource" > $temp_codes
 		local filedir=$1
 		local filename=$(echo $filedir | awk -F/ '{print $NF}' | cut -d'.' -f1) # gets the m p name without .json
 		outFile="$output_dir/shortend_$filename.txt"
-		localPassList="localPassList.txt" > $localPassList
+
+		passList="passList.txt" > $passList
+		notPassList="notPassList.txt" > $notPassList
+
+		nbr_of_allowed=0
+		nbr_of_not_allowed=0
+
+		isAdmin=""
+
+		temp_already_seen_sources_actions_Resource="temp-already-seen-sources-actions-resource.txt" > $temp_already_seen_sources_actions_Resource
+		temp_already_seen_sources_actions_NotResource="temp-already-seen-sources-actions-notresource.txt" > $temp_already_seen_sources_actions_NotResource
 
 		while read -r line; do
 			if [ ! -z "$continue_bool" ]; then return; fi
 			main_call $line
 		done < "$temp_codes"
+		# if reached outside of the while loop, this means that the managed policy does not contain any relevant
+		# explicit denials.
+		parseAllow
 	}
 
 	m_p_dir=${2:-$(read -p "Enter the managed policies folder directory: " -e m_p_dir && echo $m_p_dir)}
@@ -367,7 +424,6 @@ AAR Allow Action Resource" > $temp_codes
 	# ------- Final actions
 	sort -u $blackList -o $blackList
 	sort -u $errors_cat_action -o $errors_cat_action
-	sort -u $errors_grep_action -o $errors_grep_action
 	sort -n $list_scores_m_p -o $list_scores_m_p
 	# --- Remove temporary files
 	rm -f $temp_codes

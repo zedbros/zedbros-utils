@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-# --- PARAMETERS ---: None=>automatic mode
+# --- PARAMETERS ---: (runyesno: Y/n, kill_program: y)
 # --- DESCRIPTION ---: Is to be called automatically through s5 script (because of file namings). (check "mv" function for file names)
 #					   If after doing it manually your files have the same names as the automatic version, then you can call it no problem. 
 #					   Moves the 4 created files into one versioned folder results and creates a recap text file called stats.txt
@@ -56,12 +56,13 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	echo -e "All files were moved to \e[4;36m$out_folder/\e[0m. \e[36m--\e[0m"
 
 	# kawalski
+fi
 
-	if [[ "$(read -n 1 -p "Do you want to kill the program ? [yN]: " killyesno && echo $killyesno)" =~ y ]]; then
+if [ -z $yesno ]; then
+	echo -e "\e[1;4;35m\twazaaa\e[0m"
+else
+	if [[ "${2:-$(read -n 1 -p "Do you want to kill the program ? [yN]: " killyesno && echo $killyesno)}" =~ y ]]; then
 		rm -rf results
 	fi
 	echo -e "\n\e[1;4;32m------\e[1;4m s4 Cleanup \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
 fi
-
-if [ -z $yesno ]; then echo -e "\e[1;4;35m\twazaaa\e[0m"; fi
-
