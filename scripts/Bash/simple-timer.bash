@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
-# Simple bash timer using "date".
+# --- DESCRIPTION ---: Simple bash timer using "date". (max. 24 hours)
 
 parseTimer () {
 	IFS=':' read -r h1 m1 s1 <<< "$1"
 	IFS=':' read -r h2 m2 s2 <<< "$(date +"%T")"
 
-	echo $((($h2-$h1)%24))h$((($m2-$m1)%60))m$((($s2-$s1)%60))s
+	echo $(((10#$h2 - 10#$h1)%24))h$(((10#$m2 - 10#$m1)%60))m$(((10#$s2 - 10#$s1)%60))s
 }
 
 startTime="$(date +"%T")"
