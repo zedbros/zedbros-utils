@@ -63,7 +63,7 @@ if [ -z $yesno ]; then
 else
 	if [[ "${2:-$(read -n 1 -p "Do you want to kill the program ? [yN]: " killyesno && echo $killyesno)}" =~ y ]]; then
 		rm -rf results
+		echo -e "\n\n\e[1;5;91m\t PROGRAM KILLED\e[0m\n"
 	fi
-	echo -e "\n\n\e[1;5;91m\t PROGRAM KILLED\e[0m"
 	echo -e "\n\e[1;4;32m------\e[1;4m s4 Cleanup \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
 fi
