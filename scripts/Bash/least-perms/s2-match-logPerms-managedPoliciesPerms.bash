@@ -15,6 +15,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	list_scores_m_p="list-scores-managed-policies.txt" > $list_scores_m_p
 	blackList="blackList.txt" > $blackList
 	mkdir "passLists" 2>/dev/null || true && rm -rf "passLists/*"
+	mkdir "alreadySeenLists" 2>/dev/null || true && rm -rf "alreadySeenLists/*"
 	output_dir="shortend_managed_policies_folder" && mkdir $output_dir 2>/dev/null || true && rm -rf $output_dir/*
 	TOTAL_NUMBER_OF_AWS_ACTIONS=$(counter=0 && for file in actions/*; do counter=$(($counter+$(cat $file | wc -l))); done && echo $counter)
 
@@ -196,9 +197,9 @@ ANANR Allow NotAction NotResource" > $temp_codes
 						# --- Handles the overflow ---
 						if [ -z "$(grep "$shortPermSourceAndAction" "$temp_already_seen_sources_actions")" ]; then
 							local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
-							local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>"/dev/null" | wc -l) && true
+							local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E "^$shortPermAction\$" 2>"/dev/null" | wc -l) && true
 							nbr_of_allowed=$(($nbr_of_allowed+$nbr_of_appearences))
-							echo $shortPermSourceAndAction >> $temp_already_seen_sources_actions
+							echo "$shortPermSourceAndAction|$nbr_of_appearences" >> $temp_already_seen_sources_actions
 						fi
 					fi
 				done < $outFile
@@ -234,38 +235,74 @@ ANANR Allow NotAction NotResource" > $temp_codes
 				done < $outFile
 				;;
 
-			# "ANAR")
-			# 	# printf "\nEntered ANAR\n"
-			# 	while read -r shortPerm; do
-			# 		local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
-			# 		if [ "$shortPermSourceAndAction" == "*" ]; then
-			# 			nbr_of_not_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
-			# 			isAdmin="0"
-			# 		else
-			# 			local shortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1)"
-			# 			local shortPermAction="$(echo $shortPermSourceAndAction | cut -d':' -f2)"
-			#
-			# 			local appears="$(grep "^$shortPermSource" "$logFile" || true)" # watch out it's on the logFile for the allow since the order of loops in inversed. => used to get the overflow_level.
-			# 			if [ ! -z "$appears" ]; then
-			# 				for logPerm in $appears; do
-			# 					if [[ $logPerm == $shortPerm ]]; then
-			# 						# --- Handles the coverage ---
-			# 						echo "$logPerm" >> $notPassList
-			# 					fi
-			# 				done
-			# 			fi
-			# 			# --- Handles the overflow ---
-			# 			if [ -z "$(grep "$shortPermSourceAndAction" "$temp_already_seen_sources_actions")" ]; then
-			# 				local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
-			# 				local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>"/dev/null" | wc -l) && true
-			# 				nbr_of_not_allowed=$(($nbr_of_not_allowed+$nbr_of_appearences))
-			# 				echo $shortPermSourceAndAction >> $temp_already_seen_sources_actions
-			# 			fi
-			# 		fi
-			# 	done < $outFile
-			# 	;;
-			# "ANANR")
-			#	;;
+			"ANAR")
+				# printf "\nEntered ANAR\n"
+				while read -r shortPerm; do
+					local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
+					if [ "$shortPermSourceAndAction" == "*" ]; then
+						printf "\n\e[31mException reached (ANAR * wildcard).\e[0m\n"
+						nbr_of_not_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
+						isNotAdmin="0"
+					else
+						local shortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1)"
+						local shortPermAction="$(echo $shortPermSourceAndAction | cut -d':' -f2)"
+
+						local appears="$(grep "^$shortPermSource" "$logFile" || true)" # watch out it's on the logFile for the allow since the order of loops in inversed. => used to get the overflow_level.
+						if [ -z "$appears" ]; then
+							echo "$logPerm" >> $notPassList
+							# since this permissions source is not in the managed policy, this only means that is passes. We hand over the overflow analysis to the else section, as we keep track of all the written perms and subtract them from the $TOTAL_NUMBER_OF_AWS_ACTIONS.
+						else
+							for logPerm in $appears; do
+								if [[ ! $logPerm == $shortPerm ]]; then
+									# --- Handles the coverage ---
+									echo "$logPerm" >> $notPassList
+								fi
+							done
+							# --- Handles the overflow ---
+							if [ -z "$(grep "$shortPermSourceAndAction" "$temp_already_seen_sources_actions")" ]; then
+								local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
+								local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>"/dev/null" | wc -l) && true
+								nbr_of_not_allowed=$(($nbr_of_not_allowed+$nbr_of_appearences))
+								echo $shortPermSourceAndAction >> $temp_already_seen_sources_actions
+							fi
+						fi
+					fi
+				done < $outFile
+				;;
+			"ANANR")
+				# printf "\nEntered ANANR\n"
+				while read -r shortPerm; do
+					local shortPermSourceAndAction="$(echo $shortPerm | cut -d'|' -f1)"
+					if [ "$shortPermSourceAndAction" == "*" ]; then
+						printf "\n\e[31mException reached (ANAR * wildcard).\e[0m\n"
+						nbr_of_not_allowed=$TOTAL_NUMBER_OF_AWS_ACTIONS
+						isNotAdmin="0"
+					else
+						local shortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1)"
+						local shortPermAction="$(echo $shortPermSourceAndAction | cut -d':' -f2)"
+
+						local appears="$(grep "^$shortPermSource" "$logFile" || true)" # watch out it's on the logFile for the allow since the order of loops in inversed. => used to get the overflow_level.
+						if [ -z "$appears" ]; then
+							echo "$logPerm" >> $notPassList
+							# since this permissions source is not in the managed policy, this only means that is passes. We hand over the overflow analysis to the else section, as we keep track of all the written perms and subtract them from the $TOTAL_NUMBER_OF_AWS_ACTIONS.
+						else
+							for logPerm in $appears; do
+								if [[ $logPerm == $shortPerm ]]; then
+									# --- Handles the coverage ---
+									echo "$logPerm" >> $notPassList
+								fi
+							done
+							# --- Handles the overflow ---
+							if [ -z "$(grep "$shortPermSourceAndAction" "$temp_already_seen_sources_actions")" ]; then
+								local uncasedShortPermSource="$(echo $shortPermSourceAndAction | cut -d':' -f1 | tr '[:upper:]' '[:lower:]')"
+								local nbr_of_appearences=$(cat "actions/$uncasedShortPermSource.txt" 2>>"$errors_cat_action" | grep -E ^$shortPermAction 2>"/dev/null" | wc -l) && true
+								nbr_of_not_allowed=$(($nbr_of_not_allowed+$nbr_of_appearences))
+								echo $shortPermSourceAndAction >> $temp_already_seen_sources_actions
+							fi
+						fi
+					fi
+				done < $outFile
+				;;
 			*)
 				printf "\n\e[31mWrong workflow code given.\e[0m\n"
 				;;
@@ -316,6 +353,7 @@ ANANR Allow NotAction NotResource" > $temp_codes
 		fi
 		rm $passList
 		rm $notPassList
+		cat $temp_already_seen_sources_actions >> "alreadySeenLists/$filename.txt"
 		rm $temp_already_seen_sources_actions
 		rm $temp_already_seen_sources_actions_NotResource
 	}
@@ -356,12 +394,16 @@ ANANR Allow NotAction NotResource" > $temp_codes
 		temp_already_seen_sources_actions="temp-already-seen-sources-actions.txt" > $temp_already_seen_sources_actions
 		temp_already_seen_sources_actions_NotResource="temp-already-seen-sources-actions-notresource.txt" > $temp_already_seen_sources_actions_NotResource
 
+		echo -e "\e[95m$filename\e[0m"
+
 		while read -r line; do
+			echo we doing : $line
 			if [ ! -z "$continue_bool" ]; then return; fi
 			main_call $line
+			# ... don't know if wait alone without the "&" does anything
+			wait
 		done < "$temp_codes"
-		# if reached outside of the while loop, this means that the managed policy does not contain any relevant
-		# explicit denials.
+		# if reached outside of the while loop, this means that the managed policy does not contain any relevant explicit denials.
 		parseAllow
 	}
 
@@ -403,8 +445,7 @@ ANANR Allow NotAction NotResource" > $temp_codes
 
 	echo -e "\e[1;4;32m------\e[1;4m s2 Matching \e[1;4;92mdone\e[1;4;32m. ------\e[0m\n"
 fi
-
-if [ -z ${1:-} ]; then
+if [ ! -z ${1:-} ]; then
 	echo -e "\e[1;32mwazaaa" else
 	thisScriptDir=$(dirname "$0")
 	"$thisScriptDir/s3-venn.bash" "y" "passLists"

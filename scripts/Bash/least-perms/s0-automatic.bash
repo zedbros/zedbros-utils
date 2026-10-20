@@ -2,8 +2,8 @@
 set -euo pipefail
 
 parseTimer () {
-	IFS=':' read -r h1 m1 s1 <<< "16:00:52"
-	IFS=':' read -r h2 m2 s2 <<< "16:16:32"
+	IFS=':' read -r h1 m1 s1 <<< "$1"
+	IFS=':' read -r h2 m2 s2 <<< "$(date +"%T")"
 
 	hours=$(awk -v x1="$h1" -v x2="$h2" 'BEGIN { printf x2 - x1 }')
 	minutes=$(awk -v x1="$m1" -v x2="$m2" 'BEGIN { printf x2 - x1 }') && if [ $minutes -lt 0 ];then hours=$(($hours-1));minutes="$((60-$m1+$m2))"; fi
