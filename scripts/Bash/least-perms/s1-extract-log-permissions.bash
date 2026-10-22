@@ -41,7 +41,7 @@ if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	for filename in $(ls $filedir); do filter "$filedir/$filename" $cutoff; done
 	
 	sort -u $output -o $output
-	echo -e "The file was written to \e[36m$output --\e[0m"
+	echo -e "\e[36m-\e[0mThe file was written to \e[36m$output --\e[0m"
 	echo -e "\e[1;4;32m------\e[1;4m s1 Filtering \e[1;4;92mdone\e[1;4;32m. \e[1;4;32m------\e[0m\n"
 
 	if [ "$runyesno" == "y" ]; then
