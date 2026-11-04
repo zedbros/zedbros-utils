@@ -114,9 +114,10 @@ generate-conventional-commit () {
 		git commit -m "$commitMessage"
 		echo -e "${green}Commit created successfully!${white}\n"
 		printf "${flashing}Push ? ${white}" && read -p "(y/N): " pushyesno && printf "\n"
-		if [[ "$pushyesno" =~ ^[yY]$ ]]; then git push; else printf "${red}Push cancelled.${white}\n"; fi
+		if [[ "$pushyesno" =~ ^[yY]$ ]]; then git push; else printf "${red}Push cancelled.${white}\n"; exit; fi
 	else
 		echo -e "${red}Commit cancelled.${white}"
+		exit
 	fi
 }
 
@@ -135,9 +136,11 @@ if [[ -z "$answer" || "$answer" =~ [yY] ]]; then
 		git commit --allow-empty --allow-empty-message -m "$mes"
 		echo -e "${green}Commit created successfully!${white}\n"
 		printf "${flashing}Push ? ${white}" && read -p "(y/N): " pushyesno && printf "\n"
-		if [[ "$pushyesno" =~ ^[yY]$ ]]; then git push; else printf "${red}Push cancelled.${white}\n"; fi
-		fi
+		if [[ "$pushyesno" =~ ^[yY]$ ]]; then git push; else printf "${red}Push cancelled.${white}\n"; exit; fi
+	fi
+	printf "\n${green}--- WAZAAA ---${white}"
 else
     printf "\n${red}Commit cancelled.${white}\n"
+	exit
 fi
 
