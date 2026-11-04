@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-read -p "Do you want to (Y/n): " yesno
+yesno="${1:-"$(read -n 1 -p "Do you want to [Yn]: " yesno && echo $yesno)"}"
 
 if [[ -z $yesno || "$yesno" =~ ^[yY]$ ]]; then
 	echo entered
