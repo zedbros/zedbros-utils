@@ -138,7 +138,7 @@ if [[ -z "$answer" || "$answer" =~ [yY] ]]; then
 		printf "${flashing}Push ? ${white}" && read -p "(y/N): " pushyesno && printf "\n"
 		if [[ "$pushyesno" =~ ^[yY]$ ]]; then git push; else printf "${red}Push cancelled.${white}\n"; exit; fi
 	fi
-	printf "\n${green}--- WAZAAA ---${white}"
+	printf "\n${purple}--- WAZAAA ---${white}\n"
 else
     printf "\n${red}Commit cancelled.${white}\n"
 	exit
