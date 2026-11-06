@@ -1,0 +1,93 @@
+#!/bin/bash
+set -uo pipefail
+
+white="\e[0m"
+
+red="\e[31m"
+green="\e[32m"
+yellow="\e[33m"
+purple="\e[35m"
+cyan="\e[36m"
+
+ipurple="\e[95m"
+icyan="\e[96m"
+
+binDir="/home/zb/.local/bin"
+gitDir="/home/zb/Main/Other/Personal/zedbros-utils/scripts/Shell"
+
+ack () {
+	printf "${purple}" && read -n1 -p "Acknowledge:" ack </dev/tty && printf "${white}\n"
+}
+copyScript () {
+	printf "\n${yellow}Copy $shellScript${white} to the git repo ?" && read -n1 -p " [yN]: " cpyesno </dev/tty && printf "\n"
+	if [[ "$cpyesno" =~ [yY] ]]; then
+		cp "$binScript" "$gitScript"
+		echo -e "${icyan}Copied${white} $binScript ${icyan}to${white} $gitScript"
+		ack
+	else
+		echo -e "${red}Copy cancelled.${white}\n"
+		ack
+	fi
+}
+diffScript () {
+	printf "Show diff ?" && read -n1 -p " [Yn]: " diffyesno </dev/tty && printf "\n"
+	if [[ -z "$diffyesno" || "$diffyesno" =~ [yY] ]]; then
+		printf "${yellow}" && printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '-' && printf "${white}"
+		diff --color "$gitScript" "$binScript"
+		printf "${yellow}" && printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '-' && printf "${white}"
+	else
+		echo -e "${yellow}Diff skipped.${white}\n"
+	fi
+}
+showChanges () {
+	echo -e "${cyan}---------------\n FILES SUMMARY\n---------------${white}"
+	printf "%-63s %s\n" "LOCAL SCRIPTS" "REPO SCRIPTS"
+	printf "%-63s %s\n" "_____________" "____________"
+	diff -y --color <(cat "$binDir/custom-list.txt" | sort) <(ls "$gitDir"| sort)
+}
+
+doit () {
+	echo -e "${icyan}---------------\n SHELL SUMMARY\n---------------${white}"
+	local more="${1:-}"
+	while read -r shellScript; do
+		binScript="$binDir/$shellScript"
+		gitScript="$gitDir/$shellScript"
+		res="$(diff -q "$gitScript" "$binScript" 2>/dev/null)"
+		errorCode="$(echo $?)"
+		case "$errorCode" in
+			"0")
+				echo -e "${cyan}--- ${green}$shellScript --- are identical.${white}"
+				# if [ "$more" == "y" ]; then ack fi
+				;;
+			"1")
+				echo -e "${cyan}--- ${yellow}$shellScript ${cyan}--- ${yellow}differ.${white}"
+				if [ "$more" == "y" ]; then diffScript; copyScript; fi
+				;;
+			"2")
+				echo -e "${red}$shellScript no such file exists.${white}"
+				if [ "$more" == "y" ]; then copyScript; diffScript; fi
+				;;
+			*)
+				echo -e "${red}Some other diff error."
+				exit 1
+				;;
+		esac
+		if [ "$more" == "y" ]; then clear; fi
+	done < "$binDir/custom-list.txt"
+}
+
+clear
+echo -e "${icyan}==========\n  SHELL\n==========${white}"
+showChanges
+doit
+read -n1 -p "Skip Shell ? [Yn]: " skipyesno && printf "\n"
+if [[ "$skipyesno" =~ [nN] ]]; then
+	goagainyesno="y"
+	while [[ "$goagainyesno" =~ [yY] ]]; do
+		doit "y"
+		showChanges
+		doit
+		goagainyesno="$(read -n1 -p "Go again ? [yN]: " goagainyesno && echo "$goagainyesno")" && printf "\n"
+	done
+fi
+echo -e "${icyan}================\n FINISHED SHELL\n================${white}"

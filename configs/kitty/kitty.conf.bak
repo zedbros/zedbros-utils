@@ -1,0 +1,24 @@
+dim_opacity 1
+
+background_image /home/zb/Downloads/2B.png
+background_image_layout cscaled
+background_opacity 0.6
+background_blur 0
+background_tint 0.8
+background_tint_tiles 1.0
+
+cursor_trail 1
+cursor_trail_color cyan
+cursor_trail_decay 0.3 0.7
+cursor_trail_start_threshold 2
+
+enable_audio_bell no
+
+
+# BEGIN_KITTY_FONTS
+font_family      family="Monocraft"
+bold_font        auto
+italic_font      auto
+bold_italic_font auto
+font_size 11.0
+# END_KITTY_FONTS

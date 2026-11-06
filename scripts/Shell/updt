@@ -1,7 +1,27 @@
 #!/bin/bash
+set -euo pipefail
 
-# This is going to be a future project, where I can update the selected scripts and configs on my machine.
+white="\e[0m"
 
-# First checks the diffs between all the files
-# TODO Will add some form of autocomplete first before because I don't want to manualy type the directories.
+red="\e[31m"
+green="\e[32m"
+yellow="\e[33m"
+purple="\e[35m"
+cyan="\e[36m"
 
+ipurple="\e[95m"
+icyan="\e[96m"
+
+binDir="/home/zb/.local/bin"
+gitDir="/home/zb/Main/Other/Personal/zedbros-utils/scripts/Shell"
+
+ack () {
+	printf "${purple}" && read -n1 -p "Acknowledge:" ack </dev/tty && printf "${white}\n"
+}
+clear
+echo -e "${ipurple}---------------\n STARTED  ALL.\n---------------${white}"
+ack
+updt-shell
+updt-configs
+
+echo -e "${ipurple}---------------\n FINISHED ALL.\n---------------${white}"

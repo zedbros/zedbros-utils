@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # This script speeds up my github commands add --all, status, commit -m "commit message" and push; with one command.
 # Allows empty messages and empty commits.
 # Added convential commit generator.
@@ -38,7 +38,7 @@ generate-conventional-commit () {
 
 		local choice
 		while true; do
-			printf "\n" && read -n 1 -r -p "Choice [1-${#types[@]}]: " choice
+			printf "\n" && read -n1 -r -p "Choice [1-${#types[@]}]: " choice
 			if [[ "$choice" =~ ^[0-9]+$ ]] &&
 			   (( choice >= 1 && choice <= ${#types[@]} )); then
 				selectedType="${types[$((choice-1))]}"
@@ -53,21 +53,21 @@ generate-conventional-commit () {
 	selectType
 
 	scope=$(ask $'\nScope (optional): ')
-	description=$(ask $'Short description: ')
+	description=$(ask $'Commit description: ')
 
 	while [[ -z "$description" ]]; do
-		echo -e "${red}Description cannot be empty.${white}"
-		description=$(ask "Short description: ")
+		echo -e "${red}Commit description cannot be empty.${white}"
+		description=$(ask "Commit description: ")
 	done
 
-	read -n 1 -r -p $'\nIs this a breaking change? [yN]: ' breaking
-	read -n 1 -r -p $'\nAdd an extended description? [yN]: ' extended && printf "\n"
+	read -n1 -r -p $'\nIs this a breaking change? [yN]: ' breaking
+	read -n1 -r -p $'\nAdd an extended description? [yN]: ' extended && printf "\n"
 	body=""
 
 	if [[ "$extended" =~ ^[yY]$ ]]; then
 		echo "Enter description (finish with an empty line):"
 
-		while IFS= read -r line; do
+		while IFS= read -er line; do
 			[[ -z "$line" ]] && break
 			if [[ -n "$body" ]]; then
 				body+=$'\n'
@@ -76,7 +76,7 @@ generate-conventional-commit () {
 		done
 	fi
 
-	read -n 1 -r -p $'Add a footer? [yN]: ' addFooter
+	read -n1 -r -p $'Add a footer? [yN]: ' addFooter
 	footer=""
 
 	if [[ "$addFooter" =~ ^[yY]$ ]]; then
@@ -109,7 +109,7 @@ generate-conventional-commit () {
 	printf '%s\n' "$commitMessage"
 	echo -e "${cyan}==========================${white}"
 
-	read -n 1 -r -p $'\nCreate this commit? [yN]: ' confirm && printf "\n"
+	read -n1 -r -p $'\nCreate this commit? [yN]: ' confirm && printf "\n"
 	if [[ "$confirm" =~ ^[yY]$ ]]; then
 		git commit -m "$commitMessage"
 		echo -e "${green}Commit created successfully!${white}\n"
@@ -124,10 +124,10 @@ generate-conventional-commit () {
 git add .
 git status
 
-read -n 1 -p "Do you wish to commit? [Yn]: " answer && printf "\n"
+read -n1 -p "Do you wish to commit? [Yn]: " answer && printf "\n"
 
 if [[ -z "$answer" || "$answer" =~ [yY] ]]; then
-	read -n 1 -p "Conventional commit ? [Yn]: " convcommyesno && printf "\n"
+	read -n1 -p "Conventional commit ? [Yn]: " convcommyesno && printf "\n"
 
 	if [[ -z "$convcommyesno" || "$convcommyesno" =~ [yY] ]]; then
 		generate-conventional-commit
