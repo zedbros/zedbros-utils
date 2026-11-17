@@ -56,7 +56,7 @@ vim.keymap.set({'n', 'i'}, "<C-Space>", function () if vim.api.nvim_get_mode().m
 
 -----------nvim-tree setup-----------------
 vim.keymap.set("n", "_", '<cmd>NvimTreeToggle<CR>')
--- vim.keymap.set("n", "<C-Space>", "<C-w>w") -- moves between window like my ctrl+shift+j/k cycle
+vim.keymap.set("n", "<C-S-Space>", "<C-w>w") -- moves between window like my ctrl+shift+j/k cycle
 -------------------------------------------
 
 
